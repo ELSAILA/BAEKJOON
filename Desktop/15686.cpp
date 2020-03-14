@@ -1,148 +1,182 @@
 #include <iostream>
+#include <queue>
 #include <vector>
-#include <cmath>
-#include <algorithm>
-
-// 15686
+#include <cstring>
 using namespace std;
-
 #define MAX 51
 
-struct PR{
-	int x, y, dist;
+struct VR{
+	int x, y;
 };
 
-int mat[MAX][MAX];
+struct MOV{
+	int x, y;
+};
+
+int mat[MAX][MAX], mat2[MAX][MAX];
 int N, M, ans = 100000000;
-bool visited[MAX];
-vector<PR> chik, home;
+int zero_num, zero_tmp;
+bool visited[MAX], flag;
+bool mat_visited[MAX][MAX];
+vector <VR> vr_loc;
+MOV mov[4] = { {1,0},{0,1},{-1,0},{0,-1} };
 
 void print(){
-
+	
 	for(int i=0;i<N;++i){
 		for(int j=0;j<N;++j){
 			cout << mat[i][j] << " ";
 		}
 		cout << endl;
 	}
-	
+	cout << endl;
 }
 
-void check(){
+void spread(){
 	
-	int b_dist=0;
+	queue< pair<int, int> > q;
 	
-	for(int i=0;i<home.size();++i){
+	for(int i=0;i<vr_loc.size();++i){
 		
-		int hx = home[i].x;
-		int hy = home[i].y;
-		
-		for(int j=0;j<chik.size();++j){
-
-			if(visited[j] == false){			
-				int tmp = abs(hx - chik[j].x) + abs(hy - chik[j].y);			
-				home[i].dist = min(home[i].dist, tmp);
-			}
-			else
-				continue;
+		if(visited[i] == true){
+			q.push( make_pair(vr_loc[i].x, vr_loc[i].y) );	
+			mat_visited[vr_loc[i].x][vr_loc[i].y] = true;
 		}
-		
-		b_dist += home[i].dist;
 	}
 	
-	ans = min(ans, b_dist);
+	while(!q.empty()){
+	
+		int x = q.front().first;
+		int y = q.front().second;
+		q.pop();
+		
+		for(int i=0;i<4;++i){
+			
+			int nextx = x + mov[i].x;
+			int nexty = y + mov[i].y;
+			
+			if(0<=nextx && nextx<N && 0<=nexty && nexty<N && (mat[nextx][nexty]==2 || mat[nextx][nexty]==0) && mat_visited[nextx][nexty] == false && zero_num!=0){
+
+				if(mat[nextx][nexty] == 0){
+					zero_num--;
+				}
+				
+				mat[nextx][nexty] = mat[x][y]+1;
+				mat_visited[nextx][nexty] == true;			
+				q.push(make_pair(nextx, nexty));
+			}
+			
+		}
+		
+	}
+	
+	int spm = 0;
+	int cnt = 0;	
+	
+	for(int i=0;i<N;++i){
+		for(int j=0;j<N;++j){			
+			if(mat[i][j]==0)
+				cnt++;
+		}
+	}
+	
+	if(cnt==0){
+	
+		for(int i=0;i<N;++i){
+			for(int j=0;j<N;++j){			
+				spm = max(spm, mat[i][j]);
+			}
+		}
+
+		ans = min(ans, spm);
+		flag = true;
+	}
+		
+//	print();
 }
 
-void DFS(int start, int depth, int cnt){
-	
-	if(depth == cnt){
+void BFS(int start, int depth){
 
-		check();
+	if(depth == M){
 		
-		for(int i=0;i<home.size();++i){
-			home[i].dist = 10000000;	
+		// cout << endl << "< ";
+		// for(int i=0;i<vr_loc.size();++i){
+		// 	cout <<visited[i] << " ";	
+		// }
+		// cout << " >" <<endl;
+		
+		spread();
+		for(int i=0;i<N;++i){
+			for(int j=0;j<N;++j){
+				mat[i][j] = mat2[i][j];
+			}
 		}
+		
+		memset(mat_visited,false,MAX*MAX);
+		zero_num = zero_tmp;
 		
 		return;
 	}
 	
-	for(int i=start;i<chik.size();++i){
+	for(int i=start;i<vr_loc.size();++i){
 		
 		if(visited[i] == false){
-		
 			visited[i] = true;
-			DFS(i, depth+1, cnt);
-			visited[i] = false;
-		}
-		
-		
+			BFS(i, depth+1);
+			visited[i] = false;			
+		}		
 	}
 	
-	
 }
-
 
 int main(){
 
 	cin >> N >> M;
-
-	int cnt=0;
+	
 	for(int i=0;i<N;++i){
 		for(int j=0;j<N;++j){
 			cin >> mat[i][j];
+			mat2[i][j] = mat[i][j];
 			
 			if(mat[i][j] == 2){
-				PR pr;
-				pr.x = i;
-				pr.y = j;
-				pr.dist = 0;
-				chik.push_back(pr);
-				cnt++;
+				VR vr;
+				vr.x = i;
+				vr.y = j;
+				vr_loc.push_back(vr);
 			}
 			
-			if(mat[i][j] == 1){
-				PR pr;
-				pr.x = i;
-				pr.y = j;
-				pr.dist = 100000000;
-				home.push_back(pr);
-			}
-		}
+			if(mat[i][j] == 0){
+				zero_num++;
+			}			
+			
+		}	
 	}
 	
-	cnt-=M;
+	zero_tmp = zero_num;
 	
-	DFS(0, 0, cnt);
-
-	cout << ans << endl;
+	BFS(0,0);
 	
-	return 0;
+	if(flag == false){
+		cout << -1 <<endl;	
+	}
+	else{
+		cout << ans-2 << endl;
+	}
+	
+	return 0;	
 }
+
 
 /*
 
 
-5 1
-1 2 0 2 1
-1 2 0 2 1
-1 2 0 2 1
-1 2 0 2 1
-1 2 0 2 1
-
-5 1
-1 2 0 0 0
-1 2 0 0 0
-1 2 0 0 0
-1 2 0 0 0
-1 2 0 0 0
-
-5 2
-0 2 0 1 0
-1 0 1 0 0
-0 0 0 0 0
-2 0 0 1 1
-2 2 0 1 2
+7 3
+2 0 0 0 1 1 0
+0 0 1 0 1 2 0
+0 1 1 0 1 0 0
+0 1 0 0 0 0 0
+0 0 0 2 0 1 1
+0 1 0 0 0 0 0
+2 1 0 0 0 0 2
 
 */
-
-
